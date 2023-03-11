@@ -11,25 +11,41 @@ btnGeolocation.onclick = getGeolocation;
 btnGetWeather.onclick = getWeather;
 
 let geolocation;
-
 function getGeolocation() {
-    /*/
-    Получите широту и долготу текущей геолокации;
-    сохраните полученные данные в переменную geolocation;
-    добавьте полученные значения в соответствующие поля <input>
-    /*/
+    // попытка определить геолокацию
+    if (navigator.geolocation) {
+        // метод принимает 2 функции - успешного определения и ошибки определения геолокации
+        navigator.geolocation.getCurrentPosition(getGeolocationSuccess, getGeolocationError);
+    } else {
+        alert("Геолокация не поддерживается браузером");
+    }
+
+    // успешное определение геолокации
+    function getGeolocationSuccess(position) {
+        let lat = position.coords.latitude;
+        let lon = position.coords.longitude;
+        geolocation =  {lat : lat, lon : lon};
+        inputLatitude.value = lat;
+        inputLongitude.value = lon;
+    }
+
+    // ошибка определения геолокации
+    function getGeolocationError(error) {
+        alert('Ошибка определения геолокации:', error);
+    }
 }
 
 function getWeather() {
-    if (!geolocation) return  alert('Геолокация не определена!');
-    
-    /* INFO: https://github.com/Yeqzids/7timer-issues/wiki/Wiki */
-
-    /*/
-    Получите данные [data] о погоде в текущей геолокации
-    и вызовите функцию showWeather( data ), с полученными данными в качнстве параметра
-    /*/
-
+    if (geolocation) {
+        /* INFO: https://github.com/Yeqzids/7timer-issues/wiki/Wiki */
+        const URLDomain = 'https://www.7timer.info/bin/astro.php';
+        const URLParams = `?lon=${geolocation.lon}&lat=${geolocation.lat}&ac=0&unit=metric&tzshift=0&output=json`;
+        fetch( URLDomain + URLParams )
+            .then( response => response.json() )
+            .then( data => showWeather( data ) );
+    } else {
+        alert('Геолокация не определена!');
+    }
 }
 
 // облочность
@@ -123,9 +139,9 @@ function showWeather( data ) {
     table.border = '2px';
     const tHead = document.createElement('thead');
     const tBody = document.createElement('tbody');
-    table.append( tHead );
-    table.append( tBody );
-    container.append( table );
+    table.append(tHead);
+    table.append(tBody);
+    container.append(table);
 
     tHead.innerHTML = `
         <tr>
@@ -138,13 +154,15 @@ function showWeather( data ) {
             <th>облочность</th>
         </tr>`;
 
-    weatherArr.forEach( data => {
+    weatherArr.forEach(data => {
         const tr = document.createElement('tr');
-
-        /*/
-        Заполните строки таблицы с информацией о погоде
-        /*/
-        
-        tBody.append( tr );
+        tr.innerHTML = '<td>' + getStringDateTime( currentDayMilliseconds, (data.timepoint + timeZone) ) + '</td>';
+        tr.innerHTML +='<td>' + data.temp2m + '&#8451</td>';
+        tr.innerHTML +='<td>' + relativeHumidity[data.rh2m] + '</td>';
+        tr.innerHTML +='<td>' + precipitationType[data.prec_type] + '</td>';
+        tr.innerHTML +='<td>' + windDirection[data.wind10m.direction] + '</td>';
+        tr.innerHTML +='<td>' + windSpeed[data.wind10m.speed] + '</td>';
+        tr.innerHTML +='<td>' + cloudCover[data.cloudcover] + '</td>';
+        tBody.append(tr);
     });
 }
